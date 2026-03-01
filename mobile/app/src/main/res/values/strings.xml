@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">zacode</string>
+    <!-- Web Client ID from Firebase Console (client_type: 3) -->
+    <string name="google_web_client_id">807805094108-07jsg78bu51rdqpq1hs52v7t94keg06c.apps.googleusercontent.com</string>
+</resources>

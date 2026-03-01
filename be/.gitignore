@@ -1,0 +1,37 @@
+# Environment & secrets (do not commit)
+.env
+.env.*
+.env.local
+.env.*.local
+*.env
+
+# Go (backend)
+be/vendor/
+be/*.exe
+be/*.test
+be/*.out
+be/.idea/
+
+# Android / Kotlin (mobile)
+mobile/.gradle/
+mobile/build/
+mobile/app/build/
+mobile/local.properties
+mobile/*.iml
+mobile/.idea/
+mobile/captures/
+mobile/.externalNativeBuild/
+mobile/.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
