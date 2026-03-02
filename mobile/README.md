@@ -140,6 +140,18 @@ Agar notifikasi (termasuk notifikasi chat) bisa muncul:
 
 **Panduan lengkap:** lihat **[FCM_SETUP.md](FCM_SETUP.md)** (langkah detail, format payload chat untuk backend, troubleshooting).
 
+#### FCM saat app closed (di luar app) — implementasi singkat
+
+Agar notifikasi (dengan Balas & Tandai dibaca) muncul saat app **tidak dibuka** / force-close:
+
+| Langkah | App (Android) | Backend (be) |
+|--------|----------------|--------------|
+| 1 | Pasang `google-services.json`, izin notifikasi. | Set `FIREBASE_CREDENTIALS_PATH` di `.env` ke path file **Service Account Key** JSON (dari Firebase Console → Project settings → Service accounts → Generate new private key). |
+| 2 | Setelah login, app panggil `POST /api/v1/chat/fcm-token` dengan `{"fcm_token": "<token>"}`. Token diambil dari `FirebaseMessaging.getInstance().token` (sudah di MainActivity + onNewToken). | Simpan token di DB (`user_fcm_tokens`). Di Docker, mount file JSON ke container (lihat `docker-compose.yml`). |
+| 3 | `MyFirebaseMessagingService.onMessageReceived()` terima **data** payload → panggil `ChatNotificationHelper.showChatNotification()` → notifikasi dengan Balas & Tandai dibaca. | Kirim FCM **data-only** (tanpa payload `notification`), supaya selalu masuk ke `onMessageReceived`. Payload data: `conversation_id`, `other_display_name`, `body`/`message`. |
+
+**Penting:** Backend harus kirim **hanya data** (no `notification`), agar saat app closed Android tetap memanggil `onMessageReceived` dan notifikasi custom (aksi Balas/Tandai dibaca) tampil.
+
 ### 8. Konfigurasi API Base URL
 
 API base URL sudah dikonfigurasi di:

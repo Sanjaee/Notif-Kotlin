@@ -164,7 +164,40 @@ RABBITMQ_HOST=localhost
 RABBITMQ_PORT=5672
 RABBITMQ_USER=your_user
 RABBITMQ_PASSWORD=your_password
+
+# FCM (notifikasi saat app closed / di luar app)
+FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
 ```
+
+## FCM: Notifikasi di Luar App (saat app closed)
+
+Agar notifikasi chat (dengan Balas & Tandai dibaca) muncul saat app **tidak dibuka** / ditutup:
+
+### 1. Dapatkan Service Account Key (Firebase)
+
+- Firebase Console → **Project settings** (ikon gear) → tab **Service accounts**.
+- Klik **Generate new private key** → download file JSON (nama: `project-firebase-adminsdk-xxx.json`).
+
+### 2. Simpan file & env
+
+- **Lokal:** Taruh file JSON di folder `be/`. Di `.env`:
+  ```env
+  FIREBASE_CREDENTIALS_PATH=./ezastore-firebase-adminsdk-xtqoa-6397c4e281.json
+  ```
+- **Docker:** Di `docker-compose.yml` sudah ada volume yang mount file JSON ke `/app/firebase-credentials.json`. Pastikan file `ezastore-firebase-adminsdk-xtqoa-6397c4e281.json` ada di folder `be/`, atau sesuaikan nama file di volume.
+- **VPS (nano):**
+  ```bash
+  cd ~/chat/be
+  nano ezastore-firebase-adminsdk-xtqoa-6397c4e281.json   # paste isi JSON, Ctrl+O, Ctrl+X
+  nano .env   # tambah: FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+  docker compose up -d --build
+  ```
+
+### 3. Alur
+
+- App (Android) login → panggil `POST /api/v1/chat/fcm-token` dengan body `{"fcm_token": "..."}`.
+- Backend menyimpan token di tabel `user_fcm_tokens` (bisa banyak device per user).
+- Saat ada pesan chat baru, backend kirim FCM **data-only** ke token penerima → notifikasi tampil dengan aksi Balas & Tandai dibaca walaupun app closed.
 
 ## Development
 
