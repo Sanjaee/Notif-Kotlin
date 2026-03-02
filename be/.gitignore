@@ -5,6 +5,9 @@
 .env.*.local
 *.env
 
+# Firebase Service Account Key (rahasia, jangan commit)
+*-firebase-adminsdk-*.json
+
 # Go (backend)
 be/vendor/
 be/*.exe
