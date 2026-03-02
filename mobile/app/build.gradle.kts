@@ -119,6 +119,7 @@ dependencies {
 
     // Image Loading
     implementation(libs.coil.compose)
+    implementation(libs.firebase.messaging)
 
     // Testing
     testImplementation(libs.junit)

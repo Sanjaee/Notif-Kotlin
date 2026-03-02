@@ -32,6 +32,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.websocket.ChatWebSocketManager
 import com.example.myapplication.data.model.ConversationWithMeta
+import com.example.myapplication.data.model.Message
+import com.example.myapplication.fcm.ChatNotificationHelper
+import com.example.myapplication.fcm.CurrentChatHolder
 import com.example.myapplication.data.model.TokenExpiredException
 import com.example.myapplication.data.repository.ChatRepository
 import com.example.myapplication.ui.components.ProfileImageComponent
@@ -62,9 +65,12 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             repository.getAccessToken()?.let { ChatWebSocketManager.connect(it) }
         }
-        // Real-time: update list/unread count tanpa loading full-screen (tidak glitch)
+        // Real-time: update list + tampilkan notifikasi chat saat ada pesan baru (kecuali sedang di layar chat itu)
         viewModelScope.launch {
-            ChatWebSocketManager.newMessageFlow.collect { refreshConversationsSilent() }
+            ChatWebSocketManager.newMessageFlow.collect { message ->
+                refreshConversationsSilent()
+                showChatNotificationIfNeeded(message)
+            }
         }
         viewModelScope.launch {
             ChatWebSocketManager.newNotificationFlow.collect { refreshConversationsSilent() }
@@ -84,6 +90,19 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                 onFailure = { _ -> /* keep current list */ }
             )
         }
+    }
+
+    /** Tampilkan notifikasi chat ketika dapat new_message dari WebSocket (jika user tidak sedang di layar chat tersebut). */
+    private fun showChatNotificationIfNeeded(message: Message) {
+        if (message.conversationId == CurrentChatHolder.conversationId) return
+        val senderName = message.sender?.fullName ?: "Someone"
+        ChatNotificationHelper.showChatNotification(
+            getApplication(),
+            message.conversationId,
+            senderName,
+            senderName,
+            message.message.ifBlank { "Pesan baru" }
+        )
     }
 
     fun loadConversations() {

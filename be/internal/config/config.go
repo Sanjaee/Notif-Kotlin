@@ -29,10 +29,10 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 
-	// Redis
-	RedisHost     string
-	RedisPort     string
-	RedisPassword string
+	// Redis (disabled - tidak dipakai)
+	// RedisHost     string
+	// RedisPort     string
+	// RedisPassword string
 
 	// Email
 	EmailFrom    string
@@ -74,10 +74,10 @@ func Load() (*Config, error) {
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 
-		// Redis
-		RedisHost:     getEnv("REDIS_HOST", "localhost"),
-		RedisPort:     getEnv("REDIS_PORT", "6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		// Redis (disabled)
+		// RedisHost:     getEnv("REDIS_HOST", "localhost"),
+		// RedisPort:     getEnv("REDIS_PORT", "6379"),
+		// RedisPassword: getEnv("REDIS_PASSWORD", ""),
 
 		// Email
 		EmailFrom:    getEnv("EMAIL_FROM", ""),

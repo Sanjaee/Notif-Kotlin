@@ -3,6 +3,7 @@ package com.example.myapplication.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -67,12 +68,21 @@ private fun slideOutToRight() = slideOutHorizontally(
 @Composable
 fun NavGraph(
     startDestination: String = Screen.Login.route,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    pendingChatConversationId: String? = null,
+    pendingChatOtherName: String? = null
 ) {
-    val navController = rememberNavController()
-    
+    val nav = rememberNavController()
+
+    // Deep link: dari notifikasi chat buka langsung ke layar Chat
+    LaunchedEffect(startDestination, pendingChatConversationId, pendingChatOtherName) {
+        if (startDestination == Screen.Home.route && !pendingChatConversationId.isNullOrBlank()) {
+            nav.navigate(Screen.Chat.createRoute(pendingChatConversationId, pendingChatOtherName ?: "Chat"))
+        }
+    }
+
     NavHost(
-        navController = navController,
+        navController = nav,
         startDestination = startDestination
     ) {
         composable(
@@ -84,18 +94,18 @@ fun NavGraph(
         ) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    nav.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onNavigateToRegister = {
-                    navController.navigate(Screen.Register.route)
+                    nav.navigate(Screen.Register.route)
                 },
                 onNavigateToForgotPassword = {
-                    navController.navigate(Screen.ForgotPassword.route)
+                    nav.navigate(Screen.ForgotPassword.route)
                 },
                 onNavigateToVerifyOTP = { email ->
-                    navController.navigate(Screen.VerifyOTP.createRoute(email))
+                    nav.navigate(Screen.VerifyOTP.createRoute(email))
                 }
             )
         }
@@ -112,12 +122,12 @@ fun NavGraph(
                     // Will navigate to VerifyOTP from ViewModel
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(Screen.Register.route) { inclusive = true }
                     }
                 },
                 onNavigateToVerifyOTP = { email ->
-                    navController.navigate(Screen.VerifyOTP.createRoute(email)) {
+                    nav.navigate(Screen.VerifyOTP.createRoute(email)) {
                         popUpTo(Screen.Register.route) { inclusive = true }
                     }
                 }
@@ -136,12 +146,12 @@ fun NavGraph(
             VerifyOTPScreen(
                 email = email,
                 onVerifySuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    nav.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -157,17 +167,17 @@ fun NavGraph(
         ) {
             ForgotPasswordScreen(
                 onResetSuccess = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(Screen.ForgotPassword.route) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(Screen.ForgotPassword.route) { inclusive = true }
                     }
                 },
                 onNavigateToVerifyReset = { email ->
-                    navController.navigate(Screen.VerifyOTPReset.createRoute(email))
+                    nav.navigate(Screen.VerifyOTPReset.createRoute(email))
                 }
             )
         }
@@ -184,10 +194,10 @@ fun NavGraph(
             VerifyOTPResetScreen(
                 email = email,
                 onOtpVerified = { verifiedEmail, otpCode ->
-                    navController.navigate(Screen.SetNewPassword.createRoute(verifiedEmail, otpCode))
+                    nav.navigate(Screen.SetNewPassword.createRoute(verifiedEmail, otpCode))
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -211,12 +221,12 @@ fun NavGraph(
                 email = email,
                 otpCode = otpCode,
                 onResetSuccess = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -235,12 +245,12 @@ fun NavGraph(
             VerifyEmailScreen(
                 token = token,
                 onVerifySuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    nav.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -256,17 +266,17 @@ fun NavGraph(
         ) {
             ChatListScreen(
                 onOpenChat = { convId: String, otherName: String ->
-                    navController.navigate(Screen.Chat.createRoute(convId, otherName))
+                    nav.navigate(Screen.Chat.createRoute(convId, otherName))
                 },
                 onSearchUser = {
-                    navController.navigate(Screen.SearchUser.route)
+                    nav.navigate(Screen.SearchUser.route)
                 },
                 onOpenProfile = {
-                    navController.navigate(Screen.Profile.route)
+                    nav.navigate(Screen.Profile.route)
                 },
                 onUnauthorized = {
                     onLogout()
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -281,10 +291,10 @@ fun NavGraph(
             popExitTransition = { slideOutToRight() }
         ) {
             ProfileScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { nav.popBackStack() },
                 onLogout = {
                     onLogout()
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -299,15 +309,15 @@ fun NavGraph(
             popExitTransition = { slideOutToRight() }
         ) {
             SearchUserScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { nav.popBackStack() },
                 onUserSelected = { conversationId, otherDisplayName ->
-                    navController.navigate(Screen.Chat.createRoute(conversationId, otherDisplayName)) {
+                    nav.navigate(Screen.Chat.createRoute(conversationId, otherDisplayName)) {
                         popUpTo(Screen.SearchUser.route) { inclusive = true }
                     }
                 },
                 onUnauthorized = {
                     onLogout()
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -330,10 +340,10 @@ fun NavGraph(
             ChatScreen(
                 conversationId = conversationId,
                 otherDisplayName = otherDisplayName,
-                onBack = { navController.popBackStack() },
+                onBack = { nav.popBackStack() },
                 onUnauthorized = {
                     onLogout()
-                    navController.navigate(Screen.Login.route) {
+                    nav.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }

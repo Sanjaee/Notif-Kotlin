@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Message
 import com.example.myapplication.data.model.TokenExpiredException
+import com.example.myapplication.fcm.CurrentChatHolder
 import com.example.myapplication.data.repository.ChatRepository
 import com.example.myapplication.websocket.ChatWebSocketManager
 import kotlinx.coroutines.Job
@@ -134,6 +136,10 @@ fun ChatScreen(
 
     LaunchedEffect(wsConnected) {
         if (!wsConnected) showWsDisconnectedPopup = true
+    }
+    DisposableEffect(conversationId) {
+        CurrentChatHolder.conversationId = conversationId
+        onDispose { CurrentChatHolder.conversationId = null }
     }
     LaunchedEffect(conversationId) {
         viewModel.loadMessages(conversationId)

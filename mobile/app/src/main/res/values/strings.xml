@@ -2,4 +2,12 @@
     <string name="app_name">zacode</string>
     <!-- Web Client ID from Firebase Console (client_type: 3) -->
     <string name="google_web_client_id">807805094108-07jsg78bu51rdqpq1hs52v7t94keg06c.apps.googleusercontent.com</string>
+    <!-- Notifikasi chat -->
+    <string name="chat_notif_reply">Balas</string>
+    <string name="chat_notif_reply_label">Ketik balasan…</string>
+    <string name="chat_notif_mark_read">Tandai dibaca</string>
+    <!-- FCM: saluran notifikasi default (ID harus sama dengan yang didaftar di kode) -->
+    <string name="default_notification_channel_id" translatable="false">fcm_default_channel</string>
+    <string name="msg_token_fmt">Token FCM: %1$s</string>
+    <string name="fcm_token_copied">Token FCM disalin ke clipboard</string>
 </resources>

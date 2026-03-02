@@ -13,6 +13,7 @@ Aplikasi Android dengan Kotlin yang terintegrasi dengan API authentication backe
 - ✅ Verify Email
 - ✅ Token Storage (DataStore)
 - ✅ Navigation dengan Jetpack Compose Navigation
+- ✅ **FCM (Firebase Cloud Messaging)** – notifikasi saat app ditutup, notifikasi chat dengan aksi Balas & Tandai dibaca
 
 ## Cara Install & Setup
 
@@ -118,7 +119,28 @@ Ikuti instruksi yang muncul untuk mengisi informasi keystore. Setelah selesai:
 > - Simpan keystore dengan aman! Jika hilang, Anda tidak bisa update aplikasi di Play Store
 > - Untuk development/testing, Anda bisa skip step ini dan langsung build debug
 
-### 7. Konfigurasi API Base URL
+### 7. Pasang FCM (Firebase Cloud Messaging)
+
+Agar notifikasi (termasuk notifikasi chat) bisa muncul:
+
+1. **Firebase Console**  
+   Buka [Firebase Console](https://console.firebase.google.com/) → pilih/buat project → **Add app** → Android.  
+   Package name: `com.example.myapplication`.
+
+2. **Download `google-services.json`**  
+   Dari Firebase Project settings → Your apps → Android app → download `google-services.json`.  
+   Letakkan file tersebut di folder **`app/`** (sejajar dengan `build.gradle.kts`).
+
+3. **Izin notifikasi (Android 13+)**  
+   App akan meminta izin notifikasi saat pertama dibuka. Izinkan agar FCM bisa menampilkan notifikasi.
+
+4. **Token FCM untuk testing**  
+   Setelah login, buka **Profile** → scroll ke **Token FCM (untuk testing)** → **Salin token**.  
+   Di Firebase Console → **Messaging** → **Send test message** → **Add FCM registration token** → paste token → **Test**.
+
+**Panduan lengkap:** lihat **[FCM_SETUP.md](FCM_SETUP.md)** (langkah detail, format payload chat untuk backend, troubleshooting).
+
+### 8. Konfigurasi API Base URL
 
 API base URL sudah dikonfigurasi di:
 ```
@@ -129,7 +151,7 @@ Default URL: `https://express-template-login.vercel.app/`
 
 Jika ingin mengubah, edit konstanta `BASE_URL` di file tersebut.
 
-### 8. Build Project
+### 9. Build Project
 
 #### Menggunakan Android Studio:
 
@@ -177,7 +199,7 @@ Jika ingin mengubah, edit konstanta `BASE_URL` di file tersebut.
    
    > **Note:** Jika keystore belum dibuat, build release masih bisa berhasil tetapi akan menggunakan debug keystore (tidak untuk production). Untuk production build, pastikan Anda sudah setup keystore terlebih dahulu (lihat langkah 6).
 
-### 9. Install APK ke Device
+### 10. Install APK ke Device
 
 #### Menggunakan Android Studio:
 1. Hubungkan device Android via USB
@@ -197,7 +219,7 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 3. Izinkan install dari sumber tidak dikenal jika diminta
 4. Install aplikasi
 
-### 10. Menjalankan di Emulator
+### 11. Menjalankan di Emulator
 
 1. Buka **Tools → Device Manager** di Android Studio
 2. Klik **Create Device**
@@ -233,6 +255,30 @@ kotlin/
 │   └── libs.versions.toml             # Version catalog
 └── settings.gradle.kts
 ```
+
+## File untuk integrasi FCM
+
+File-file berikut dipakai untuk integrasi Firebase Cloud Messaging (notifikasi umum + notifikasi chat):
+
+| File | Fungsi |
+|------|--------|
+| **`app/src/main/java/.../fcm/MyFirebaseMessagingService.kt`** | Service FCM: `onNewToken`, `onMessageReceived`, tampil notifikasi (umum & chat). |
+| **`app/src/main/java/.../fcm/FcmTokenManager.kt`** | Helper simpan/ambil FCM token (DataStore). |
+| **`app/src/main/java/.../fcm/ChatNotificationHelper.kt`** | Tampil notifikasi chat dengan aksi Balas & Tandai dibaca (RemoteInput). |
+| **`app/src/main/java/.../fcm/ChatNotificationReceiver.kt`** | BroadcastReceiver: handle aksi Balas (kirim pesan) dan Tandai dibaca (panggil API). |
+| **`app/src/main/java/.../fcm/CurrentChatHolder.kt`** | Menyimpan conversationId layar Chat yang aktif (agar notifikasi tidak double). |
+| **`app/src/main/java/.../MainActivity.kt`** | Minta izin notifikasi (Android 13+), ambil FCM token saat app dibuka. |
+| **`app/src/main/java/.../ui/screen/ProfileScreen.kt`** | Kartu "Token FCM (untuk testing)" + tombol Salin token. |
+| **`app/src/main/java/.../ui/screen/ChatListScreen.kt`** | ViewModel: saat dapat `new_message` dari WebSocket → tampil notifikasi chat (fallback). |
+| **`app/src/main/java/.../ui/screen/ChatScreen.kt`** | Set/clear `CurrentChatHolder.conversationId` saat buka/tutup chat. |
+| **`app/src/main/java/.../data/preferences/PreferencesManager.kt`** | Simpan/ambil FCM token (`fcmToken`, `saveFcmToken`). |
+| **`app/src/main/AndroidManifest.xml`** | Service `MyFirebaseMessagingService`, receiver `ChatNotificationReceiver`, permission notifikasi. |
+| **`app/src/main/res/values/strings.xml`** | `default_notification_channel_id`, string notifikasi chat. |
+| **`app/src/main/res/drawable/ic_stat_ic_notification.xml`** | Ikon notifikasi FCM default. |
+| **`app/google-services.json`** | Konfigurasi Firebase (download dari Firebase Console, jangan di-commit jika berisi rahasia). |
+| **`FCM_SETUP.md`** | Panduan lengkap: cara pasang FCM, token, payload chat untuk backend, troubleshooting. |
+
+Detail langkah pasang dan format payload backend: **[FCM_SETUP.md](FCM_SETUP.md)**.
 
 ## Dependencies Utama
 

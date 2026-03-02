@@ -19,6 +19,7 @@ class PreferencesManager(context: Context) {
         private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
         private val USER_ID_KEY = stringPreferencesKey("user_id")
+        private val FCM_TOKEN_KEY = stringPreferencesKey("fcm_token")
     }
     
     val accessToken: Flow<String?> = dataStore.data.map { preferences ->
@@ -36,7 +37,17 @@ class PreferencesManager(context: Context) {
     val userEmail: Flow<String?> = dataStore.data.map { preferences ->
         preferences[USER_EMAIL_KEY]
     }
-    
+
+    val fcmToken: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[FCM_TOKEN_KEY]
+    }
+
+    suspend fun saveFcmToken(token: String) {
+        dataStore.edit { preferences ->
+            preferences[FCM_TOKEN_KEY] = token
+        }
+    }
+
     suspend fun saveTokens(accessToken: String, refreshToken: String, email: String, userId: String? = null) {
         dataStore.edit { preferences ->
             preferences[ACCESS_TOKEN_KEY] = accessToken
@@ -58,6 +69,7 @@ class PreferencesManager(context: Context) {
             preferences.remove(REFRESH_TOKEN_KEY)
             preferences.remove(USER_EMAIL_KEY)
             preferences.remove(USER_ID_KEY)
+            // FCM token tidak dihapus agar tetap bisa terima notif setelah logout
         }
     }
 }

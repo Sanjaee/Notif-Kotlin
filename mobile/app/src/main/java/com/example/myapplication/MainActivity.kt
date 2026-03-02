@@ -1,7 +1,12 @@
 package com.example.myapplication
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -30,15 +35,21 @@ import com.example.myapplication.navigation.NavGraph
 import com.example.myapplication.navigation.Screen
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.theme.White
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val repository by lazy { AuthRepository(this) }
-    
+
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* granted: Boolean -> optional handling */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        askNotificationPermission()
+        fetchFcmTokenIfNeeded()
         // Set theme untuk aplikasi setelah splash
         setTheme(com.example.myapplication.R.style.Theme_MyApplication)
         
@@ -86,6 +97,8 @@ class MainActivity : ComponentActivity() {
                 
                 // Show loading or nothing until we determine start destination
                 if (!showSplash) {
+                    val pendingChatConvId = remember { intent.getStringExtra(com.example.myapplication.fcm.ChatNotificationReceiver.EXTRA_CONVERSATION_ID) }
+                    val pendingChatOtherName = remember { intent.getStringExtra(com.example.myapplication.fcm.ChatNotificationReceiver.EXTRA_OTHER_DISPLAY_NAME) }
                     startDestination?.let { destination ->
                         NavGraph(
                             startDestination = destination,
@@ -94,7 +107,9 @@ class MainActivity : ComponentActivity() {
                                     ChatWebSocketManager.disconnect()
                                     repository.logout()
                                 }
-                            }
+                            },
+                            pendingChatConversationId = pendingChatConvId,
+                            pendingChatOtherName = pendingChatOtherName
                         )
                     } ?: run {
                         // Show loading indicator while checking login state
@@ -107,6 +122,35 @@ class MainActivity : ComponentActivity() {
                             CircularProgressIndicator(color = Color.Black)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Minta izin notifikasi (Android 13+). Wajib agar FCM bisa menampilkan notifikasi.
+     * Lihat: https://firebase.google.com/docs/cloud-messaging/android/client#request-permission
+     */
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                // FCM SDK (dan app) bisa menampilkan notifikasi.
+                return
+            }
+            if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                // Opsional: tampilkan UI penjelasan sebelum minta izin.
+            }
+            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun fetchFcmTokenIfNeeded() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) return@addOnCompleteListener
+            val token = task.result ?: return@addOnCompleteListener
+            if (token.isNotEmpty()) {
+                lifecycleScope.launch {
+                    com.example.myapplication.fcm.FcmTokenManager.saveFcmToken(this@MainActivity, token)
                 }
             }
         }
