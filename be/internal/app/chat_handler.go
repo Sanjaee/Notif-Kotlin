@@ -161,9 +161,13 @@ func (h *ChatHandler) pushNewMessage(conversationID, senderID string, msg *model
 			h.hub.SendToUser(uid, gin.H{"type": "new_message", "message": msg})
 			h.hub.SendToUser(uid, gin.H{"type": "new_notification", "message_id": msg.ID})
 			// FCM: agar notifikasi muncul saat app closed (seperti WhatsApp/Discord)
-			if h.fcmClient != nil {
-				fcmToken, _ := h.chatService.GetUserFCMToken(uid)
-				if fcmToken != "" {
+			if h.fcmClient == nil {
+				log.Printf("[chat] FCM disabled: set FIREBASE_CREDENTIALS_PATH di .env agar notif muncul saat app closed")
+			} else {
+				tokens, _ := h.chatService.GetUserFCMTokens(uid)
+				if len(tokens) == 0 {
+					log.Printf("[chat] FCM skip: user %s belum daftar FCM token (buka app → login → token akan terkirim ke POST /chat/fcm-token)", uid)
+				} else {
 					data := map[string]string{
 						"conversation_id":     conversationID,
 						"other_display_name": senderName,
@@ -172,8 +176,12 @@ func (h *ChatHandler) pushNewMessage(conversationID, senderID string, msg *model
 						"body":               msg.Message,
 						"message":            msg.Message,
 					}
-					if err := h.fcmClient.Send(context.Background(), fcmToken, data, senderName, msg.Message); err != nil {
-						log.Printf("[chat] fcm send to %s: %v", uid, err)
+					for _, fcmToken := range tokens {
+						if err := h.fcmClient.Send(context.Background(), fcmToken, data, senderName, msg.Message); err != nil {
+							log.Printf("[chat] fcm send to user %s (token): %v", uid, err)
+						} else {
+							log.Printf("[chat] FCM sent to user %s (notif akan muncul di device)", uid)
+						}
 					}
 				}
 			}
@@ -256,6 +264,7 @@ func (h *ChatHandler) RegisterFCMToken(c *gin.Context) {
 		util.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
+	log.Printf("[chat] FCM token registered for user %s (notif akan muncul saat app closed)", userID)
 	util.SuccessResponse(c, http.StatusOK, "OK", nil)
 }
 

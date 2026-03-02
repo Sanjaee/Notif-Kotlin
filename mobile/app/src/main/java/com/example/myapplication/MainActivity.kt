@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.data.repository.AuthRepository
+import com.example.myapplication.data.repository.ChatRepository
 import com.example.myapplication.websocket.ChatWebSocketManager
 import com.example.myapplication.navigation.NavGraph
 import com.example.myapplication.navigation.Screen
@@ -151,6 +152,8 @@ class MainActivity : ComponentActivity() {
             if (token.isNotEmpty()) {
                 lifecycleScope.launch {
                     com.example.myapplication.fcm.FcmTokenManager.saveFcmToken(this@MainActivity, token)
+                    // Daftarkan ke server agar FCM muncul saat app closed (jika user sudah login)
+                    ChatRepository(this@MainActivity).registerFcmToken(token)
                 }
             }
         }

@@ -19,7 +19,7 @@ type ChatService interface {
 	UnreadCount(userID string) (int64, error)
 	IsMember(conversationID, userID string) (bool, error)
 	GetConversationMemberIDs(conversationID string) ([]string, error)
-	GetUserFCMToken(userID string) (string, error)
+	GetUserFCMTokens(userID string) ([]string, error)
 	UpdateFCMToken(userID string, fcmToken string) error
 }
 
@@ -31,10 +31,11 @@ type ConversationWithMeta struct {
 }
 
 type chatService struct {
-	userRepo  repository.UserRepository
-	convRepo  repository.ConversationRepository
-	msgRepo   repository.MessageRepository
-	notifRepo repository.NotificationRepository
+	userRepo     repository.UserRepository
+	convRepo     repository.ConversationRepository
+	msgRepo      repository.MessageRepository
+	notifRepo    repository.NotificationRepository
+	fcmTokenRepo repository.FcmTokenRepository
 }
 
 func NewChatService(
@@ -42,12 +43,14 @@ func NewChatService(
 	convRepo repository.ConversationRepository,
 	msgRepo repository.MessageRepository,
 	notifRepo repository.NotificationRepository,
+	fcmTokenRepo repository.FcmTokenRepository,
 ) ChatService {
 	return &chatService{
-		userRepo:  userRepo,
-		convRepo:  convRepo,
-		msgRepo:   msgRepo,
-		notifRepo: notifRepo,
+		userRepo:     userRepo,
+		convRepo:     convRepo,
+		msgRepo:      msgRepo,
+		notifRepo:    notifRepo,
+		fcmTokenRepo: fcmTokenRepo,
 	}
 }
 
@@ -187,14 +190,22 @@ func (s *chatService) GetConversationMemberIDs(conversationID string) ([]string,
 	return s.convRepo.GetMemberIDs(conversationID)
 }
 
-func (s *chatService) GetUserFCMToken(userID string) (string, error) {
-	u, err := s.userRepo.FindByID(userID)
-	if err != nil || u == nil || u.FcmToken == nil {
-		return "", err
+func (s *chatService) GetUserFCMTokens(userID string) ([]string, error) {
+	tokens, err := s.fcmTokenRepo.GetTokensByUserID(userID)
+	if len(tokens) > 0 {
+		return tokens, nil
 	}
-	return *u.FcmToken, nil
+	// Fallback: token lama di kolom users.fcm_token (backward compatibility)
+	u, err := s.userRepo.FindByID(userID)
+	if err != nil || u == nil || u.FcmToken == nil || *u.FcmToken == "" {
+		return nil, err
+	}
+	return []string{*u.FcmToken}, nil
 }
 
 func (s *chatService) UpdateFCMToken(userID string, fcmToken string) error {
+	if err := s.fcmTokenRepo.AddToken(userID, fcmToken); err != nil {
+		return err
+	}
 	return s.userRepo.UpdateFCMToken(userID, fcmToken)
 }

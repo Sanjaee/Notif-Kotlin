@@ -49,6 +49,7 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 		&model.ConversationMember{},
 		&model.Message{},
 		&model.Notification{},
+		&model.UserFcmToken{},
 	); err != nil {
 		panic("Failed to migrate database: " + err.Error())
 	}
@@ -58,6 +59,7 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	convRepo := repository.NewConversationRepository(db)
 	msgRepo := repository.NewMessageRepository(db)
 	notifRepo := repository.NewNotificationRepository(db)
+	fcmTokenRepo := repository.NewFcmTokenRepository(db)
 
 	// Initialize email service and worker pool (goroutine-based, no RabbitMQ)
 	emailService := service.NewEmailService(cfg)
@@ -66,7 +68,7 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 
 	// Initialize services (auth uses email pool for async email jobs)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret, emailPool)
-	chatService := service.NewChatService(userRepo, convRepo, msgRepo, notifRepo)
+	chatService := service.NewChatService(userRepo, convRepo, msgRepo, notifRepo, fcmTokenRepo)
 
 	// WebSocket hub for chat realtime
 	hub := ws.NewHub()
@@ -74,7 +76,9 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 
 	// FCM client (opsional: agar notifikasi muncul saat app closed)
 	var fcmClient *fcm.Client
-	if cfg.FirebaseCredentialsPath != "" {
+	if cfg.FirebaseCredentialsPath == "" {
+		log.Printf("FCM disabled: set FIREBASE_CREDENTIALS_PATH di .env (path ke file JSON Firebase service account) agar notif muncul saat app closed")
+	} else {
 		var err error
 		fcmClient, err = fcm.New(context.Background(), cfg.FirebaseCredentialsPath)
 		if err != nil {
