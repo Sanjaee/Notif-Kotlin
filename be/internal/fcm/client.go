@@ -66,7 +66,9 @@ func (c *Client) Send(ctx context.Context, deviceToken string, data map[string]s
 	if deviceToken == "" {
 		return nil
 	}
-	// FCM v1: https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
+	// FCM v1: data-only agar saat app closed/killed tetap masuk ke onMessageReceived(),
+	// sehingga app bisa tampilkan notifikasi dengan aksi Balas & Tandai dibaca.
+	// Jika kirim "notification" + data, Android kadang tampilkan notifikasi sistem (tanpa aksi) dan tidak panggil onMessageReceived.
 	msg := map[string]interface{}{
 		"token": deviceToken,
 		"data":  data,
@@ -74,9 +76,7 @@ func (c *Client) Send(ctx context.Context, deviceToken string, data map[string]s
 			"priority": "high",
 		},
 	}
-	if title != "" || body != "" {
-		msg["notification"] = map[string]interface{}{"title": title, "body": body}
-	}
+	// Jangan tambah "notification" — biarkan app yang bikin notifikasi (dengan aksi) dari data.
 	payload := map[string]interface{}{"message": msg}
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
