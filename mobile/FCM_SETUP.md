@@ -184,17 +184,19 @@ Dengan format ini notifikasi akan tampil dengan judul "Budi", isi "Hai, apa kaba
 
 ---
 
-## 10. Ringkasan untuk backend (agar FCM chat jalan)
+## 10. Backend (sudah diimplementasi di repo ini)
 
-1. **Simpan FCM token per user**  
-   App sudah menyimpan token lokal dan bisa mengirim ke backend (endpoint simpan/update FCM token per user).
+Backend Go di folder `be/` sudah mendukung FCM agar notifikasi muncul saat app closed:
 
-2. **Saat ada pesan chat baru**  
-   Setelah menyimpan pesan dan push WebSocket, panggil juga **FCM** ke device penerima (recipient):
-   - Ambil FCM token penerima dari database.
-   - Kirim **data message** (bukan hanya notification) dengan key: `conversation_id`, `other_display_name` atau `sender_name`, `body` atau `message`, optional `title`.
-   - Contoh (Go/Node/Python): gunakan Firebase Admin SDK, `send()` ke token, dengan `data: { "conversation_id": "...", "other_display_name": "Classer1", "body": "hlo" }`.
+1. **Env**  
+   Set di `.env`: `FIREBASE_CREDENTIALS_PATH=/path/ke/serviceAccountKey.json`  
+   (File JSON dari Firebase Console → Project settings → Service accounts → Generate new private key.)
 
-3. **Tanpa langkah 2**, notifikasi chat hanya akan muncul ketika app masih jalan (karena fallback dari WebSocket). Dengan langkah 2, notifikasi akan muncul **juga saat app ditutup**.
+2. **Endpoint daftar token**  
+   App memanggil `POST /api/v1/chat/fcm-token` dengan body `{"fcm_token": "..."}` (dengan header `Authorization: Bearer <access_token>`). Token disimpan per user.
 
-Dengan langkah di atas, setup token FCM dan notifikasi saat app ditutup sudah tercakup.
+3. **Saat ada pesan chat baru**  
+   Backend mengirim WebSocket **dan** FCM (data message, priority high) ke penerima. Notifikasi akan muncul walaupun app ditutup.
+
+4. **Tanpa `FIREBASE_CREDENTIALS_PATH`**  
+   Backend tetap jalan; FCM tidak dikirim (notifikasi saat app closed tidak akan muncul, hanya WebSocket saat app buka).

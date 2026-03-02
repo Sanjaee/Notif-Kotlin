@@ -46,6 +46,9 @@ type Config struct {
 	RateLimitEnabled bool
 	RateLimitRPS     int // Requests per second
 	RateLimitBurst   int // Burst size
+
+	// Firebase (FCM) - path ke file JSON service account. Kosong = FCM tidak dipakai.
+	FirebaseCredentialsPath string
 }
 
 func Load() (*Config, error) {
@@ -91,6 +94,9 @@ func Load() (*Config, error) {
 		RateLimitEnabled: getEnvBool("RATE_LIMIT_ENABLED", true),
 		RateLimitRPS:     getEnvInt("RATE_LIMIT_RPS", 100),
 		RateLimitBurst:   getEnvInt("RATE_LIMIT_BURST", 200),
+
+		// Firebase FCM (opsional)
+		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
 	}
 
 	// Build database URL if not provided

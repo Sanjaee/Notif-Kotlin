@@ -1,15 +1,17 @@
 package app
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"yourapp/internal/ws"
+	"yourapp/internal/fcm"
 	"yourapp/internal/model"
 	"yourapp/internal/service"
 	"yourapp/internal/util"
+	"yourapp/internal/ws"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -27,10 +29,11 @@ type ChatHandler struct {
 	chatService service.ChatService
 	jwtSecret   string
 	hub         *ws.Hub
+	fcmClient   *fcm.Client
 }
 
-func NewChatHandler(chatService service.ChatService, jwtSecret string, hub *ws.Hub) *ChatHandler {
-	return &ChatHandler{chatService: chatService, jwtSecret: jwtSecret, hub: hub}
+func NewChatHandler(chatService service.ChatService, jwtSecret string, hub *ws.Hub, fcmClient *fcm.Client) *ChatHandler {
+	return &ChatHandler{chatService: chatService, jwtSecret: jwtSecret, hub: hub, fcmClient: fcmClient}
 }
 
 func (h *ChatHandler) userID(c *gin.Context) string {
@@ -145,11 +148,35 @@ func (h *ChatHandler) pushNewMessage(conversationID, senderID string, msg *model
 		log.Printf("[chat] pushNewMessage GetConversationMemberIDs: %v", err)
 		return
 	}
+	senderName := ""
+	if msg.Sender != nil {
+		senderName = msg.Sender.FullName
+	}
+	if senderName == "" {
+		senderName = "Someone"
+	}
 	for _, uid := range ids {
 		if uid != senderID {
 			log.Printf("[chat] push new_message to user %s (conv %s)", uid, conversationID)
 			h.hub.SendToUser(uid, gin.H{"type": "new_message", "message": msg})
 			h.hub.SendToUser(uid, gin.H{"type": "new_notification", "message_id": msg.ID})
+			// FCM: agar notifikasi muncul saat app closed (seperti WhatsApp/Discord)
+			if h.fcmClient != nil {
+				fcmToken, _ := h.chatService.GetUserFCMToken(uid)
+				if fcmToken != "" {
+					data := map[string]string{
+						"conversation_id":     conversationID,
+						"other_display_name": senderName,
+						"sender_name":        senderName,
+						"title":              senderName,
+						"body":               msg.Message,
+						"message":            msg.Message,
+					}
+					if err := h.fcmClient.Send(context.Background(), fcmToken, data, senderName, msg.Message); err != nil {
+						log.Printf("[chat] fcm send to %s: %v", uid, err)
+					}
+				}
+			}
 		}
 	}
 }
@@ -210,6 +237,26 @@ func (h *ChatHandler) UnreadCount(c *gin.Context) {
 		return
 	}
 	util.SuccessResponse(c, http.StatusOK, "OK", gin.H{"unread_count": count})
+}
+
+// RegisterFCMToken POST /api/v1/chat/fcm-token — daftarkan FCM token agar server kirim push saat app closed
+func (h *ChatHandler) RegisterFCMToken(c *gin.Context) {
+	userID := h.userID(c)
+	if userID == "" {
+		return
+	}
+	var req struct {
+		FcmToken string `json:"fcm_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		util.BadRequest(c, "fcm_token is required")
+		return
+	}
+	if err := h.chatService.UpdateFCMToken(userID, req.FcmToken); err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	util.SuccessResponse(c, http.StatusOK, "OK", nil)
 }
 
 // HandleWebSocket GET /api/v1/ws/chat?token=xxx

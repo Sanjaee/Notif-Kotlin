@@ -3,6 +3,7 @@ package com.example.myapplication.data.repository
 import android.content.Context
 import com.example.myapplication.data.api.ApiClient
 import com.example.myapplication.data.api.CreateConversationRequest
+import com.example.myapplication.data.api.FcmTokenRequest
 import com.example.myapplication.data.api.SendMessageRequest
 import com.example.myapplication.data.model.*
 import com.example.myapplication.data.preferences.PreferencesManager
@@ -134,6 +135,19 @@ class ChatRepository(private val context: Context) {
             }
         } catch (e: Exception) {
             if (e is TokenExpiredException) Result.failure(e) else Result.failure(e)
+        }
+    }
+
+    /** Daftarkan FCM token ke server agar notifikasi push muncul saat app closed (seperti WhatsApp). */
+    suspend fun registerFcmToken(fcmToken: String): Result<Unit> {
+        val token = getToken() ?: return Result.failure(Exception("Not logged in"))
+        if (fcmToken.isBlank()) return Result.success(Unit)
+        return try {
+            val response = apiService.registerFcmToken("Bearer $token", FcmTokenRequest(fcmToken))
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

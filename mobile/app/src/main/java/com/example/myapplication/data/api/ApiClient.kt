@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
     // Ganti dengan IP/host backend yang bisa diakses dari device (bukan localhost).
     // Contoh: emulator ke host = 10.0.2.2, device ke PC = IP PC di LAN (mis. 10.71.215.248).
-    private const val BASE_URL = "http://10.71.215.248:5000/"
+    private const val BASE_URL = "http://147.182.195.95:5000/"
     fun getBaseUrl(): String = BASE_URL
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

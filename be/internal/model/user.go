@@ -27,6 +27,7 @@ type User struct {
 	OTPExpiresAt   *time.Time     `gorm:"type:timestamp" json:"-"`
 	ResetToken     *string        `gorm:"type:text" json:"-"`
 	ResetExpiresAt *time.Time     `gorm:"type:timestamp" json:"-"`
+	FcmToken       *string        `gorm:"type:text" json:"-"` // FCM token untuk push notifikasi saat app closed
 	CreatedAt      time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`

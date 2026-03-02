@@ -24,6 +24,7 @@ type UserRepository interface {
 	FindByResetToken(token string) (*model.User, error)
 	UpdatePassword(userID string, passwordHash string) error
 	UpdateLastLogin(userID string) error
+	UpdateFCMToken(userID string, fcmToken string) error
 }
 
 type userRepository struct {
@@ -151,4 +152,10 @@ func (r *userRepository) UpdateLastLogin(userID string) error {
 	return r.db.Model(&model.User{}).
 		Where("id = ?", userID).
 		Update("last_login", now).Error
+}
+
+func (r *userRepository) UpdateFCMToken(userID string, fcmToken string) error {
+	return r.db.Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("fcm_token", fcmToken).Error
 }

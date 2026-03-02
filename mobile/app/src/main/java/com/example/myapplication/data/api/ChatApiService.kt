@@ -50,7 +50,18 @@ interface ChatApiService {
         @Header("Authorization") token: String,
         @Path("id") conversationId: String
     ): Response<ApiResponse<Nothing>>
+
+    /** Daftarkan FCM token agar server kirim push notifikasi saat app closed (seperti WhatsApp). */
+    @POST("api/v1/chat/fcm-token")
+    suspend fun registerFcmToken(
+        @Header("Authorization") authToken: String,
+        @Body body: FcmTokenRequest
+    ): Response<ApiResponse<Nothing>>
 }
+
+data class FcmTokenRequest(
+    @SerializedName("fcm_token") val fcmToken: String
+)
 
 data class CreateConversationRequest(
     @SerializedName("other_user_id") val otherUserId: String
@@ -80,3 +91,4 @@ data class MessagesData(
 data class MessageData(
     @SerializedName("message") val message: Message
 )
+

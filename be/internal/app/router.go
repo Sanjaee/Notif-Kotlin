@@ -3,12 +3,13 @@ package app
 import (
 	"context"
 	"log"
-	"yourapp/internal/ws"
 	"yourapp/internal/config"
+	"yourapp/internal/fcm"
 	"yourapp/internal/middleware"
 	"yourapp/internal/model"
 	"yourapp/internal/repository"
 	"yourapp/internal/service"
+	"yourapp/internal/ws"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -71,9 +72,21 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 	hub := ws.NewHub()
 	go hub.Run()
 
+	// FCM client (opsional: agar notifikasi muncul saat app closed)
+	var fcmClient *fcm.Client
+	if cfg.FirebaseCredentialsPath != "" {
+		var err error
+		fcmClient, err = fcm.New(context.Background(), cfg.FirebaseCredentialsPath)
+		if err != nil {
+			log.Printf("FCM init failed (notifications when app closed will be disabled): %v", err)
+		} else {
+			log.Printf("FCM enabled: push notifications when app is closed")
+		}
+	}
+
 	// Initialize handlers
 	authHandler := NewAuthHandler(authService, cfg.JWTSecret)
-	chatHandler := NewChatHandler(chatService, cfg.JWTSecret, hub)
+	chatHandler := NewChatHandler(chatService, cfg.JWTSecret, hub, fcmClient)
 
 	// API routes
 	api := r.Group("/api/v1")
@@ -109,6 +122,7 @@ func NewRouter(cfg *config.Config) *gin.Engine {
 			chat.GET("/notifications", chatHandler.ListNotifications)
 			chat.POST("/notifications/:id/read", chatHandler.MarkNotificationRead)
 			chat.GET("/notifications/unread-count", chatHandler.UnreadCount)
+			chat.POST("/fcm-token", chatHandler.RegisterFCMToken)
 		}
 
 		// WebSocket (token in query or Authorization header)

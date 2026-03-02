@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.myapplication.MainActivity
 import com.example.myapplication.R
+import com.example.myapplication.data.repository.ChatRepository
 import com.example.myapplication.fcm.ChatNotificationHelper
 import com.example.myapplication.fcm.FcmTokenManager
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Service FCM: menangani token refresh dan pesan masuk.
@@ -82,7 +84,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val notification = NotificationCompat.Builder(this, FcmChannelSetup.DEFAULT_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -98,16 +100,21 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
-     * Kirim FCM token ke server (simpan di PreferencesManager + panggil API jika ada).
+     * Simpan FCM token lokal + kirim ke backend agar notifikasi push muncul saat app closed (seperti WhatsApp).
      */
     private fun sendRegistrationToServer(token: String) {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         scope.launch {
             try {
                 FcmTokenManager.saveFcmToken(applicationContext, token)
-                // TODO: panggil API backend jika punya endpoint simpan FCM token, contoh:
-                // apiService.updateFcmToken("Bearer $accessToken", token)
-                Log.d(FCM_TAG, "FCM token saved locally; send to your backend if needed.")
+                withContext(Dispatchers.IO) {
+                    val repo = ChatRepository(applicationContext)
+                    repo.registerFcmToken(token).onSuccess {
+                        Log.d(FCM_TAG, "FCM token synced to server")
+                    }.onFailure {
+                        Log.d(FCM_TAG, "FCM token saved locally; sync to server when app opens: ${it.message}")
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(FCM_TAG, "sendRegistrationToServer error", e)
             }

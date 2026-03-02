@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.TokenExpiredException
 import com.example.myapplication.data.model.User
 import com.example.myapplication.data.repository.AuthRepository
+import com.example.myapplication.data.repository.ChatRepository
+import com.example.myapplication.fcm.FcmTokenManager
 import com.example.myapplication.websocket.ChatWebSocketManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,7 @@ data class HomeUiState(
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AuthRepository(application)
+    private val chatRepository = ChatRepository(application)
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState
@@ -30,6 +33,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             repository.getAccessToken()?.let { token ->
                 ChatWebSocketManager.connect(token)
             }
+        }
+    }
+    
+    /** Sync FCM token ke server agar notifikasi push muncul saat app closed (seperti WhatsApp). */
+    fun syncFcmTokenIfNeeded() {
+        viewModelScope.launch {
+            val fcmToken = FcmTokenManager.getFcmToken(getApplication()) ?: return@launch
+            if (fcmToken.isBlank()) return@launch
+            chatRepository.registerFcmToken(fcmToken)
         }
     }
     
@@ -49,6 +61,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         errorMessage = null,
                         isTokenExpired = false
                     )
+                    syncFcmTokenIfNeeded()
                 },
                 onFailure = { error ->
                     // Check if it's TokenExpiredException

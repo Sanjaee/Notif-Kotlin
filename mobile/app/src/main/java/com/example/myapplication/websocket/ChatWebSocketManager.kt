@@ -36,7 +36,7 @@ object ChatWebSocketManager {
     private const val RECONNECT_DELAY_MS = 3000L
     private const val MAX_RECONNECT_ATTEMPTS = 10
 
-    private var baseUrl: String = "http://10.71.215.248:5000/"
+    private var baseUrl: String = "http://147.182.195.95:5000/"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val gson = Gson()
     private val client = OkHttpClient.Builder()

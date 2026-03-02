@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_preferences")
@@ -41,6 +42,9 @@ class PreferencesManager(context: Context) {
     val fcmToken: Flow<String?> = dataStore.data.map { preferences ->
         preferences[FCM_TOKEN_KEY]
     }
+
+    /** Ambil access token saat ini (untuk panggilan API dari Service / sync FCM). */
+    suspend fun getAccessToken(): String? = dataStore.data.first()[ACCESS_TOKEN_KEY]
 
     suspend fun saveFcmToken(token: String) {
         dataStore.edit { preferences ->

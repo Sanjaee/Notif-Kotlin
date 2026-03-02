@@ -19,6 +19,8 @@ type ChatService interface {
 	UnreadCount(userID string) (int64, error)
 	IsMember(conversationID, userID string) (bool, error)
 	GetConversationMemberIDs(conversationID string) ([]string, error)
+	GetUserFCMToken(userID string) (string, error)
+	UpdateFCMToken(userID string, fcmToken string) error
 }
 
 type ConversationWithMeta struct {
@@ -183,4 +185,16 @@ func (s *chatService) UnreadCount(userID string) (int64, error) {
 
 func (s *chatService) GetConversationMemberIDs(conversationID string) ([]string, error) {
 	return s.convRepo.GetMemberIDs(conversationID)
+}
+
+func (s *chatService) GetUserFCMToken(userID string) (string, error) {
+	u, err := s.userRepo.FindByID(userID)
+	if err != nil || u == nil || u.FcmToken == nil {
+		return "", err
+	}
+	return *u.FcmToken, nil
+}
+
+func (s *chatService) UpdateFCMToken(userID string, fcmToken string) error {
+	return s.userRepo.UpdateFCMToken(userID, fcmToken)
 }
